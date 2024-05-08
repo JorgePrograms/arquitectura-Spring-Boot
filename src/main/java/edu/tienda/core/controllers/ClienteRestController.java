@@ -1,13 +1,18 @@
 package edu.tienda.core.controllers;
 
 import edu.tienda.core.domain.Cliente;
+import edu.tienda.core.exceptions.ResourceNotFoundException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 @RestController
+@RequestMapping("/clientes")
 public class ClienteRestController {
 
     private List<Cliente> clientes= new ArrayList<>(Arrays.asList(
@@ -17,52 +22,59 @@ public class ClienteRestController {
     ));
 
 
-    @GetMapping("/clientes")
-    public List<Cliente>getClientes(){
-        return clientes;
+    @GetMapping
+    public ResponseEntity<?> getClientes(){
+        return ResponseEntity.ok(clientes);
     }
-    /*
-    @GetMapping("/clientes/{userName}")
-    public Cliente getClientes(@PathVariable String userName){
-        for(Cliente cli:clientes){
-            if (cli.getUsername().equalsIgnoreCase(userName)){
-                return cli;
+
+    @GetMapping("{userName}")
+    public ResponseEntity<?> getClientes(@PathVariable String userName){
+        for(Cliente cliente:clientes){
+            if (cliente.getUsername().equalsIgnoreCase(userName)){
+                return ResponseEntity.ok(cliente);
             }
         }
-        return null;
-    }*/
+        throw new ResourceNotFoundException("Cliente no encontrado");
+    }
 
-    @GetMapping("/clientes/{userName}")
-    public Cliente getCliente(@PathVariable String userName){
-            return clientes.stream().
+    /*
+    @GetMapping("{userName}")
+    public ResponseEntity<?> getCliente(@PathVariable String userName){
+            return ResponseEntity.ok(clientes.stream().
                     filter(cliente -> cliente.getUsername().equalsIgnoreCase(userName)).
-                    findFirst().orElseThrow();
+                    findFirst().orElseThrow());
 
     }
-
-    @PostMapping("/clientes")
-    public Cliente altaCliente(@RequestBody Cliente cliente){
+*/
+    @PostMapping
+    public ResponseEntity<?> altaCliente(@RequestBody Cliente cliente){
         clientes.add(cliente);
-        return cliente;
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{userName}")
+                .buildAndExpand(cliente.getUsername())
+                .toUri();
+        return ResponseEntity.created(location).body(cliente) ;
     }
 
-    @PutMapping("/clientes")
-    public Cliente modificacionCliente(@RequestBody Cliente cliente){
+    @PutMapping
+    public ResponseEntity<?> modificacionCliente(@RequestBody Cliente cliente){
         Cliente clienteEncontrado = clientes.stream().
                 filter(cli -> cli.getUsername().equalsIgnoreCase(cliente.getUsername())).
                 findFirst().orElseThrow();
 
         clienteEncontrado.setPassword(cliente.getPassword());
         clienteEncontrado.setNombre(cliente.getNombre());
-        return clienteEncontrado;
+        return ResponseEntity.ok(clienteEncontrado);
     }
 
-    @DeleteMapping("clientes/{userName}")
-    public void deleteCliente(@PathVariable String userName){
+    @DeleteMapping("{userName}")
+    public ResponseEntity deleteCliente(@PathVariable String userName){
         Cliente clienteEncontrado = clientes.stream().
                 filter(cli-> cli.getUsername().equalsIgnoreCase(userName) ).
                 findFirst().orElseThrow();
         clientes.remove(clienteEncontrado);
+
+        return ResponseEntity.noContent().build();
     }
 
 
